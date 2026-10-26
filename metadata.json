@@ -1,0 +1,6 @@
+{
+  "name": "Forest Path Auth - Sign Up & Sign In",
+  "description": "An elegant, overlapping dual-card sign up and sign in page with serene forest imagery and bilingual English/Tamil support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
