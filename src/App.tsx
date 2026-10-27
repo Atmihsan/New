@@ -8,9 +8,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Globe, 
   Sparkles, 
-  TreePine,
+  Network,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Sun,
+  Zap,
+  Activity,
+  Layers,
+  LogIn
 } from 'lucide-react';
 import { 
   createUserWithEmailAndPassword, 
@@ -28,16 +33,26 @@ import { Language, UserSession, THEMES, TRANSLATIONS } from './types';
 import { PasswordInput } from './components/PasswordInput';
 import { Toast, ToastMessage } from './components/Toast';
 import { SignedInView } from './components/SignedInView';
+import { ProfileView } from './components/ProfileView';
+import { NetworkBackground } from './components/NetworkBackground';
+import { NetworkSystem } from './components/NetworkSystem';
 import forestImg from './assets/images/serene_forest_path_1793023556387.jpg';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80';
 
+export type AppView = 'auth' | 'network' | 'profile';
+
 export default function App() {
-  const [isSignUp, setIsSignUp] = useState(true);
+  const [view, setView] = useState<AppView>('auth');
+  const [isSignUp, setIsSignUp] = useState(false); // Default to Login page
   const [isForgot, setIsForgot] = useState(false);
   const [language, setLanguage] = useState<Language>('en');
   const [activeTheme, setActiveTheme] = useState(THEMES[0]);
   
+  // Lighting & network animation states
+  const [lightingOn, setLightingOn] = useState<boolean>(true);
+  const [lightIntensity, setLightIntensity] = useState<'subtle' | 'vibrant'>('vibrant');
+
   // Form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,6 +65,7 @@ export default function App() {
   const [firebaseNotice, setFirebaseNotice] = useState<string | null>(null);
 
   const t = TRANSLATIONS[language];
+  const isTa = language === 'ta';
 
   // Test connection on boot & listen to Auth state
   useEffect(() => {
@@ -88,9 +104,14 @@ export default function App() {
   };
 
   const handleDemoFill = () => {
-    setEmail('kavitha.nature@example.com');
-    setPassword('ForestPath2026!');
-    addToast(language === 'ta' ? 'மாதிரி விவரங்கள் நிரப்பப்பட்டன' : 'Demo credentials applied', 'info');
+    setEmail('atmihsan.network@gmail.com');
+    setPassword('Atmihsan2026!');
+    addToast(isTa ? 'மாதிரி விவரங்கள் நிரப்பப்பட்டன' : 'Demo credentials applied', 'info');
+  };
+
+  const triggerLightPulse = () => {
+    setLightIntensity('vibrant');
+    setTimeout(() => setLightIntensity('subtle'), 1200);
   };
 
   const syncUserProfileToFirestore = async (user: FirebaseUser) => {
@@ -110,6 +131,7 @@ export default function App() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFirebaseNotice(null);
+    triggerLightPulse();
 
     if (isForgot) {
       setIsLoading(true);
@@ -119,7 +141,7 @@ export default function App() {
         setIsForgot(false);
       } catch (err: unknown) {
         const error = err as Error;
-        addToast(language === 'ta' ? `பிழை: ${error.message}` : `Error: ${error.message}`, 'error');
+        addToast(isTa ? `பிழை: ${error.message}` : `Error: ${error.message}`, 'error');
       } finally {
         setIsLoading(false);
       }
@@ -130,21 +152,19 @@ export default function App() {
 
     try {
       if (isSignUp) {
-        // Register new user with Firebase
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await syncUserProfileToFirestore(userCredential.user);
         addToast(
-          language === 'ta'
+          isTa
             ? 'பதிவு வெற்றிகரமாக முடிந்தது! (Sign Up Successful)'
             : 'Sign Up Successful! Account created in Firebase.',
           'success'
         );
       } else {
-        // Sign in existing user with Firebase
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         await syncUserProfileToFirestore(userCredential.user);
         addToast(
-          language === 'ta'
+          isTa
             ? 'உள்நுழைவு வெற்றி! (Sign In Successful)'
             : 'Sign In Successful! Welcome back.',
           'success'
@@ -156,34 +176,34 @@ export default function App() {
       const message = error.message || 'Authentication error';
 
       if (code === 'auth/operation-not-allowed') {
-        const noticeMsg = language === 'ta'
+        const noticeMsg = isTa
           ? 'Firebase Console-ல் Email/Password முறை இன்னும் இயக்கப்படவில்லை (Authentication > Sign-in method > Email/Password). கூகிள் மூலம் உள்நுழையலாம்.'
           : 'Email/Password provider is not yet enabled in Firebase Console. You can enable it under Authentication > Sign-in method, or sign in with Google below.';
         setFirebaseNotice(noticeMsg);
         addToast(noticeMsg, 'error');
       } else if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
         addToast(
-          language === 'ta'
+          isTa
             ? 'தவறான மின்னஞ்சல் அல்லது கடவுச்சொல் (Invalid email or password)'
             : 'Invalid email or password. Please verify your credentials.',
           'error'
         );
       } else if (code === 'auth/email-already-in-use') {
         addToast(
-          language === 'ta'
+          isTa
             ? 'இந்த மின்னஞ்சல் ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது (Email already in use)'
             : 'Email already registered. Try signing in instead.',
           'error'
         );
       } else if (code === 'auth/weak-password') {
         addToast(
-          language === 'ta'
+          isTa
             ? 'கடவுச்சொல் குறைந்தது 6 எழுத்துகள் இருக்க வேண்டும் (Password too weak)'
             : 'Password should be at least 6 characters.',
           'error'
         );
       } else {
-        addToast(language === 'ta' ? `பிழை: ${message}` : `Error: ${message}`, 'error');
+        addToast(isTa ? `பிழை: ${message}` : `Error: ${message}`, 'error');
       }
     } finally {
       setIsLoading(false);
@@ -193,19 +213,20 @@ export default function App() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setFirebaseNotice(null);
+    triggerLightPulse();
     try {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
       await syncUserProfileToFirestore(userCredential.user);
       addToast(
-        language === 'ta'
+        isTa
           ? 'கூகிள் மூலம் உள்நுழைவு வெற்றி! (Google Sign In Successful)'
           : 'Signed in with Google successfully!',
         'success'
       );
     } catch (err: unknown) {
       const error = err as Error;
-      addToast(language === 'ta' ? `பிழை: ${error.message}` : `Google Sign In error: ${error.message}`, 'error');
+      addToast(isTa ? `பிழை: ${error.message}` : `Google Sign In error: ${error.message}`, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -215,7 +236,7 @@ export default function App() {
     try {
       await signOut(auth);
       setPassword('');
-      addToast(language === 'ta' ? 'வெளியேறிவிட்டீர்கள் (Signed out)' : 'Logged out', 'info');
+      addToast(isTa ? 'வெளியேறிவிட்டீர்கள் (Signed out)' : 'Logged out', 'info');
     } catch (err: unknown) {
       const error = err as Error;
       addToast(`Logout error: ${error.message}`, 'error');
@@ -231,17 +252,113 @@ export default function App() {
   return (
     <div
       style={{ backgroundColor: activeTheme.bgColor }}
-      className="min-h-screen w-full flex flex-col justify-between items-center p-4 sm:p-6 transition-colors duration-500 font-sans selection:bg-[#319885] selection:text-white"
+      className="relative min-h-screen w-full flex flex-col justify-between items-center p-3 sm:p-6 transition-colors duration-500 font-sans selection:bg-[#319885] selection:text-white overflow-x-hidden"
     >
-      {/* Top minimal bar */}
-      <header className="w-full max-w-4xl flex items-center justify-between py-2 text-white/90">
-        <div className="flex items-center gap-2 text-sm font-semibold tracking-wide">
-          <TreePine className="w-5 h-5 text-white/80" />
-          <span>{language === 'ta' ? 'இயற்கைப் பாதை' : 'Forest Path'}</span>
-        </div>
+      {/* Dynamic Network & Atmospheric Lighting Background Animation */}
+      <NetworkBackground
+        intensity={lightIntensity}
+        lightingEffect={lightingOn}
+      />
 
-        <div className="flex items-center gap-2">
+      {/* Top minimal bar */}
+      <header className="relative z-20 w-full max-w-5xl flex flex-wrap items-center justify-between gap-3 py-2 text-white/95">
+        {/* Brand Lockup */}
+        <button
+          onClick={() => setView('auth')}
+          type="button"
+          className="flex items-center gap-2.5 font-bold tracking-tight text-white drop-shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+        >
+          <div className="w-8 h-8 rounded bg-white/20 flex items-center justify-center text-white border border-white/25 shadow-sm">
+            <Network className="w-4 h-4 text-emerald-100" />
+          </div>
+          <span className="text-sm font-extrabold tracking-wider uppercase">
+            ATM.IHSAN&amp;NETWORKS
+          </span>
+        </button>
+
+        {/* Central Navigation Actions */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Direct Login Page button */}
           {!activeSession && (
+            <button
+              onClick={() => {
+                setView('auth');
+                setIsSignUp(false);
+                setIsForgot(false);
+              }}
+              type="button"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded transition-all cursor-pointer shadow-sm border ${
+                view === 'auth' && !isSignUp && !isForgot
+                  ? 'bg-white text-[#277e6e] border-white ring-2 ring-white/30'
+                  : 'text-white/95 bg-white/20 hover:bg-white/30 border-white/25 active:scale-95'
+              }`}
+              title="Open Login Page"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>{isTa ? 'உள்நுழைவு' : 'Login'}</span>
+            </button>
+          )}
+
+          {/* Networking System Tab */}
+          <button
+            onClick={() => setView(view === 'network' ? 'auth' : 'network')}
+            type="button"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded transition-all cursor-pointer shadow-sm border ${
+              view === 'network'
+                ? 'bg-white text-[#277e6e] border-white ring-2 ring-white/30'
+                : 'text-white/95 bg-white/20 hover:bg-white/30 border-white/25 active:scale-95'
+            }`}
+            title="Inspect ATM.IHSAN&NETWORKS System Topology"
+          >
+            <Activity className="w-3.5 h-3.5 text-emerald-300" />
+            <span>{isTa ? 'நெட்வொர்க் அமைப்பு' : 'Network System'}</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+          </button>
+
+          {/* Founder Profile button */}
+          <button
+            onClick={() => setView(view === 'profile' ? 'auth' : 'profile')}
+            type="button"
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded transition-all cursor-pointer shadow-sm border ${
+              view === 'profile'
+                ? 'bg-white text-slate-900 border-white ring-2 ring-white/30'
+                : 'text-white/95 bg-white/20 hover:bg-white/30 border-white/25 active:scale-95'
+            }`}
+            title="View ATM Ihsan Profile"
+          >
+            <img
+              src="/assets/aistudio/VEGA_1788849362335_b819d12f.jpg"
+              alt="ATM Ihsan"
+              className="w-4 h-4 rounded-full object-cover object-top border border-white/50"
+            />
+            <span>{isTa ? 'சுயவிவரம்' : 'Profile'}</span>
+          </button>
+
+          {/* Lighting Animation Toggle */}
+          <button
+            onClick={() => {
+              setLightingOn(!lightingOn);
+              addToast(
+                !lightingOn
+                  ? (isTa ? 'ஒளி அனிமேஷன் இயக்கப்பட்டது' : 'Lighting animation enabled')
+                  : (isTa ? 'ஒளி அனிமேஷன் அணைக்கப்பட்டது' : 'Lighting animation dimmed'),
+                'info'
+              );
+            }}
+            type="button"
+            className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded transition-all cursor-pointer shadow-sm border ${
+              lightingOn
+                ? 'bg-amber-400/25 border-amber-300/40 text-amber-100 hover:bg-amber-400/35'
+                : 'bg-white/10 border-white/15 text-white/60 hover:bg-white/20'
+            }`}
+            title="Toggle network lighting & beam animation"
+          >
+            <Zap className={`w-3.5 h-3.5 ${lightingOn ? 'text-amber-300' : 'text-white/60'}`} />
+            <span className="hidden sm:inline">{lightingOn ? (isTa ? 'ஒளி ஆன்' : 'Light On') : (isTa ? 'ஒளி ஆஃப்' : 'Light Off')}</span>
+          </button>
+
+          {/* Quick Demo Fill (only in Auth view when not logged in) */}
+          {view === 'auth' && !activeSession && (
             <button
               onClick={handleDemoFill}
               type="button"
@@ -249,10 +366,11 @@ export default function App() {
               title="Click to fill sample credentials"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-              <span className="hidden sm:inline">{t.fillDemo}</span>
+              <span className="hidden md:inline">{t.fillDemo}</span>
             </button>
           )}
 
+          {/* Language Switcher */}
           <button
             onClick={toggleLanguage}
             type="button"
@@ -266,9 +384,40 @@ export default function App() {
       </header>
 
       {/* Main Center Stage */}
-      <main className="w-full flex-1 flex items-center justify-center my-6">
+      <main className="relative z-10 w-full flex-1 flex items-center justify-center my-6">
         <AnimatePresence mode="wait">
-          {activeSession ? (
+          {view === 'network' ? (
+            <motion.div
+              key="network-system"
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              className="w-full flex justify-center"
+            >
+              <NetworkSystem
+                onBack={() => setView('auth')}
+                language={language}
+                onToast={addToast}
+                onPulseLight={triggerLightPulse}
+              />
+            </motion.div>
+          ) : view === 'profile' ? (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              className="w-full flex justify-center"
+            >
+              <ProfileView
+                onBack={() => setView('auth')}
+                language={language}
+                onToast={addToast}
+              />
+            </motion.div>
+          ) : activeSession ? (
             <motion.div
               key="signed-in"
               initial={{ opacity: 0, scale: 0.96 }}
@@ -281,6 +430,7 @@ export default function App() {
                 session={activeSession}
                 onLogout={handleLogout}
                 language={language}
+                onViewProfile={() => setView('profile')}
               />
             </motion.div>
           ) : (
@@ -289,9 +439,9 @@ export default function App() {
               <div
                 className="container relative w-full max-w-[650px] min-h-[480px] md:h-[480px] flex flex-col md:flex-row items-center justify-center"
               >
-                {/* Right Forest Image Card */}
+                {/* Right Forest Image Card with Lighting Glow */}
                 <div
-                  className="image-card w-full md:w-[55%] h-[200px] md:h-full relative md:absolute md:right-0 md:top-0 rounded-[4px] overflow-hidden shadow-[0_10px_25px_rgba(0,0,0,0.15)] bg-emerald-950"
+                  className="image-card w-full md:w-[55%] h-[200px] md:h-full relative md:absolute md:right-0 md:top-0 rounded-[4px] overflow-hidden shadow-[0_10px_25px_rgba(0,0,0,0.15)] bg-emerald-950 transition-all"
                 >
                   <img
                     src={imgError ? FALLBACK_IMAGE : forestImg}
@@ -299,6 +449,7 @@ export default function App() {
                     alt="Forest Path"
                     className="w-full h-full object-cover object-center filter brightness-[0.98] contrast-[1.02]"
                   />
+                  {/* Subtle quote overlay visible on bottom right */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-5 text-white pointer-events-none">
                     <p className="text-[12px] font-medium leading-relaxed italic opacity-90 drop-shadow-sm line-clamp-2">
                       {t.natureQuote}
@@ -311,11 +462,52 @@ export default function App() {
 
                 {/* Left Form Card */}
                 <div
-                  className="form-card relative md:absolute left-0 md:left-[10%] w-full md:w-[50%] bg-[#ffffff] px-7 py-8 sm:px-[30px] sm:py-[35px] rounded-[4px] shadow-[0_10px_30px_rgba(0,0,0,0.18)] z-10 -mt-10 md:mt-0 transition-all text-left"
+                  className="form-card relative md:absolute left-0 md:left-[10%] w-full md:w-[50%] bg-[#ffffff] px-7 py-8 sm:px-[30px] sm:py-[35px] rounded-[4px] shadow-[0_10px_30px_rgba(0,0,0,0.18)] z-10 -mt-10 md:mt-0 transition-all text-left border border-white/60"
                 >
-                  <h2 id="form-title" className="text-[26px] font-extrabold text-[#000000] tracking-tight leading-none mb-6">
-                    {isForgot ? t.forgotPasswordTitle : (isSignUp ? (language === 'ta' ? 'பதிவு செய்க (Sign Up)' : 'Sign Up') : (language === 'ta' ? 'உள்நுழைக (Sign In)' : 'Sign In'))}
-                  </h2>
+                  {/* Mode Tabs */}
+                  <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-[4px] mb-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSignUp(false);
+                        setIsForgot(false);
+                      }}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-[3px] transition-all cursor-pointer ${
+                        !isSignUp && !isForgot
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900'
+                      }`}
+                    >
+                      {isTa ? 'உள்நுழைவு (Login)' : 'Sign In / Login'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSignUp(true);
+                        setIsForgot(false);
+                      }}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-[3px] transition-all cursor-pointer ${
+                        isSignUp && !isForgot
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900'
+                      }`}
+                    >
+                      {isTa ? 'பதிவு (Sign Up)' : 'Sign Up'}
+                    </button>
+                  </div>
+
+                  <div className="mb-4">
+                    <h2 id="form-title" className="text-[26px] font-extrabold text-[#000000] tracking-tight leading-none mb-1">
+                      {isForgot ? t.forgotPasswordTitle : (isSignUp ? (isTa ? 'பதிவு செய்க' : 'Sign Up') : (isTa ? 'உள்நுழைக (Login)' : 'Sign In'))}
+                    </h2>
+                    <p className="text-[12px] text-gray-500">
+                      {isForgot
+                        ? (isTa ? 'கடவுச்சொல்லை மீட்டமைக்க மின்னஞ்சலை உள்ளிடவும்' : 'Enter your email to receive a password reset link')
+                        : (isSignUp
+                            ? (isTa ? 'ATM.IHSAN&NETWORKS-ல் புதிய கணக்கு தொடங்கவும்' : 'Create your account on ATM.IHSAN&NETWORKS')
+                            : (isTa ? 'ATM.IHSAN&NETWORKS போர்ட்டலில் உள்நுழையவும்' : 'Sign in to access ATM.IHSAN&NETWORKS portal'))}
+                    </p>
+                  </div>
 
                   {/* Firebase provider notice banner if provider requires enabling */}
                   {firebaseNotice && (
@@ -366,6 +558,22 @@ export default function App() {
                           required
                           autoComplete={isSignUp ? 'new-password' : 'current-password'}
                         />
+
+                        {!isSignUp && (
+                          <div className="mt-2 flex items-center justify-between text-xs">
+                            <span className="text-[11px] text-gray-500">
+                              {isTa ? 'சோதனை கணக்கு:' : 'Demo account:'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleDemoFill}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#319885] hover:text-[#277e6e] cursor-pointer"
+                            >
+                              <Sparkles className="w-3 h-3 text-amber-500" />
+                              <span>{isTa ? 'விவரங்களை நிரப்பு' : 'Auto-fill Demo'}</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -379,7 +587,7 @@ export default function App() {
                       type="submit"
                       disabled={isLoading}
                       id="submit-btn-text"
-                      className="submit-btn w-full py-3 bg-[#319885] hover:bg-[#277e6e] text-white rounded-[3px] font-bold text-[13px] tracking-[0.5px] cursor-pointer mt-2.5 mb-3.5 uppercase transition-all flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-75"
+                      className="submit-btn w-full py-3 bg-[#319885] hover:bg-[#277e6e] text-white rounded-[3px] font-bold text-[13px] tracking-[0.5px] cursor-pointer mt-2.5 mb-3.5 uppercase transition-all flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-75 shadow-sm"
                     >
                       {isLoading ? (
                         <>
@@ -391,8 +599,8 @@ export default function App() {
                           {isForgot
                             ? t.sendResetLink
                             : (isSignUp
-                                ? (language === 'ta' ? 'பதிவு செய்க' : 'SIGN UP')
-                                : (language === 'ta' ? 'உள்நுழைக' : 'SIGN IN'))}
+                                ? (isTa ? 'பதிவு செய்க (Sign Up)' : 'SIGN UP')
+                                : (isTa ? 'உள்நுழைக (Sign In / Login)' : 'SIGN IN / LOGIN'))}
                         </span>
                       )}
                     </button>
@@ -423,12 +631,12 @@ export default function App() {
                             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                           />
                         </svg>
-                        <span>{language === 'ta' ? 'கூகிள் மூலம் உள்நுழைக' : 'Continue with Google'}</span>
+                        <span>{isTa ? 'கூகிள் மூலம் உள்நுழைக' : 'Continue with Google'}</span>
                       </button>
                     )}
                   </form>
 
-                  {/* Mode Toggle Link matching user IDs and text */}
+                  {/* Mode Toggle Link */}
                   <div className="pt-1">
                     {isForgot ? (
                       <button
@@ -448,8 +656,8 @@ export default function App() {
                         className="toggle-link text-[13px] text-[#333333] hover:text-[#319885] transition-colors cursor-pointer select-none"
                       >
                         {isSignUp
-                          ? (language === 'ta' ? 'ஏற்கனவே கணக்கு உள்ளதா? உள்நுழைக' : 'Already have an account? Sign In')
-                          : (language === 'ta' ? 'கணக்கு இல்லையா? பதிவு செய்க' : "Don't have an account? Sign Up")}
+                          ? (isTa ? 'ஏற்கனவே கணக்கு உள்ளதா? உள்நுழைக' : 'Already have an account? Sign In')
+                          : (isTa ? 'கணக்கு இல்லையா? பதிவு செய்க' : "Don't have an account? Sign Up")}
                       </a>
                     )}
                   </div>
@@ -461,7 +669,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-3 py-2 text-xs text-white/80">
+      <footer className="relative z-20 w-full max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-3 py-2 text-xs text-white/80">
         <div className="flex items-center gap-2">
           <span className="text-white/60">Theme:</span>
           <div className="flex items-center gap-1.5">
@@ -486,7 +694,9 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-4 text-white/70">
-          <span>{language === 'ta' ? 'Firebase அங்கீகாரம் இணைக்கப்பட்டது' : 'Firebase Auth Connected'}</span>
+          <span className="font-semibold text-white/90">ATM.IHSAN&amp;NETWORKS</span>
+          <span>·</span>
+          <span>{isTa ? 'பாதுகாப்பான நெட்வொர்க் அமைப்பு' : 'Live Network System'}</span>
           <span>·</span>
           <span>2026</span>
         </div>
